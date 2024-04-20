@@ -11,7 +11,7 @@ BG_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'bg
 BIRD_IMAGES = [pygame.transform.scale2x(pygame.image.load(os.path.join('images', f'bird{i+1}.png'))) for i in range(3)]
 
 pygame.font.init()
-SCORE_FONT = pygame.font.SysFont('arial', 50)
+SCORE_FONT = pygame.font.SysFont('04b_19', 50)
 
 class Bird:
     IMAGES = BIRD_IMAGES
@@ -154,7 +154,7 @@ def draw_screen(screen, birds, pipes, base, score):
     for pipe in pipes:
         pipe.draw(screen)
 
-    text = SCORE_FONT.render(f'SCORE: {score}', 1, (255, 255, 255))
+    text = SCORE_FONT.render(f'Score: {score}', 1, (255, 255, 255))
     screen.blit(text, (SCREEN_WIDTH - 10 - text.get_width(), 10))
     base.draw(screen)
     pygame.display.update()
