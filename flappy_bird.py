@@ -1,17 +1,26 @@
+import neat.config
 import pygame
 import os
 import random
+import neat
+
+AI_PLAYING = True
+GENERATION = 0
 
 SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 800
 
-PIPE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'pipe.png')))
-BASE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'base.png')))
-BG_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'bg.png')))
-BIRD_IMAGES = [pygame.transform.scale2x(pygame.image.load(os.path.join('images', f'bird{i+1}.png'))) for i in range(3)]
+PIPE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'gameImages', 'pipe.png')))
+BASE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'gameImages', 'base.png')))
+BG_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'gameImages', 'bg.png')))
+BIRD_IMAGES = [pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'gameImages', f'bird{i+1}.png'))) for i in range(3)]
 
 pygame.font.init()
-SCORE_FONT = pygame.font.SysFont('04b_19', 50)
+SCORE_FONT = pygame.font.SysFont('04b_19', 35)
+pygame.display.set_caption('Flappy Bird NEAT')
+icon = pygame.image.load(os.path.join('assets', 'icon', f'bird.png'))
+pygame.display.set_icon(icon)
+
 
 class Bird:
     IMAGES = BIRD_IMAGES
@@ -156,12 +165,34 @@ def draw_screen(screen, birds, pipes, base, score):
 
     text = SCORE_FONT.render(f'Score: {score}', 1, (255, 255, 255))
     screen.blit(text, (SCREEN_WIDTH - 10 - text.get_width(), 10))
+
+    if AI_PLAYING:
+        text = SCORE_FONT.render(f'Generation: {GENERATION}', 1, (255, 255, 255))
+        screen.blit(text, (10, 10))
+
+
     base.draw(screen)
     pygame.display.update()
 
 
-def main():
-    birds = [Bird(230, 350)]
+def main(genomes, config):
+    global GENERATION
+    GENERATION += 1
+
+    if AI_PLAYING:
+        networks = []
+        genomes_list = []
+        birds = []
+        for _, genome in genomes:
+            network = neat.nn.FeedForwardNetwork.create(genome, config)
+            networks.append(network)
+            genome.fitness = 0
+            genomes_list.append(genome)
+            birds.append(Bird(230, 350))
+
+    else:
+        birds = [Bird(230, 350)]
+    
     base = Base(730)
     pipes = [Pipe(700)]
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -178,13 +209,29 @@ def main():
                 running = False
                 pygame.quit()
                 quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    for bird in birds:
-                        bird.flap()
+            if not AI_PLAYING:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        for bird in birds:
+                            bird.flap()
 
-        for bird in birds:
+        pipe_index = 0
+        if len(birds) > 0:
+            if len(pipes) > 1 and birds[0].x > (pipes[0].x + pipes[0].TOP_PIPE.get_width()):
+                pipe_index = 1
+            pass
+        else:
+            running = False
+            break
+
+        for i, bird in enumerate(birds):
             bird.move()
+            genomes_list[i].fitness = 0.1
+            output = networks[i].activate((bird.y, 
+                                           abs(bird.y - pipes[pipe_index].height), 
+                                           abs(bird.y - pipes[pipe_index].bottom_pos)))
+            if output[0] > 0.5:
+                bird.flap()
         base.move()
 
         spawn_pipe = False
@@ -193,6 +240,10 @@ def main():
             for i, bird in enumerate(birds):
                 if pipe.collide(bird):
                     birds.pop(i)
+                    if AI_PLAYING:
+                        genomes_list[i].fitness -= 1
+                        genomes_list.pop(i)
+                        networks.pop(i)
                 if not pipe.passed and bird.x > pipe.x:
                     pipe.passed = True
                     spawn_pipe = True
@@ -203,15 +254,34 @@ def main():
         if spawn_pipe:
             score += 1
             pipes.append(Pipe(600))
+            for genome in genomes_list:
+                genome.fitness += 5
         for pipe in remove_pipes:
             pipes.remove(pipe)
 
         for i, bird in enumerate(birds):
             if (bird.y + bird.image.get_height()) > base.y or bird.y < 0:
-                bird.pop(i)
+                birds.pop(i)
+                if AI_PLAYING:
+                    genomes_list.pop(i)
+                    networks.pop(i)
 
         draw_screen(screen, birds, pipes, base, score)
 
+def run(config_path):
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
+    population = neat.Population(config)
+    population.add_reporter(neat.StdOutReporter(True))
+    population.add_reporter(neat.StatisticsReporter())
+
+    max_generations = 50
+    if AI_PLAYING:
+        population.run(main, max_generations)
+    else:
+        main(None, None)
+
+
 if __name__ == '__main__':
-    main()
+    config_path = 'config.txt'
+    run(config_path)
 
