@@ -5,10 +5,10 @@ import random
 SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 800
 
-PIPE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'images', 'pipe.png')))
-BASE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'images', 'base.png')))
-BG_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'images', 'bg.png')))
-BIRD_IMAGES = [pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'images', f'bird{i+1}.png'))) for i in range(3)]
+PIPE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'pipe.png')))
+BASE_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'base.png')))
+BG_IMAGE = pygame.transform.scale2x(pygame.image.load(os.path.join('images', 'bg.png')))
+BIRD_IMAGES = [pygame.transform.scale2x(pygame.image.load(os.path.join('images', f'bird{i+1}.png'))) for i in range(3)]
 
 pygame.font.init()
 SCORE_FONT = pygame.font.SysFont('arial', 50)
